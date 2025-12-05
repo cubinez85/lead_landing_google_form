@@ -1,0 +1,158 @@
+# Установка системы автоматизации заявок
+
+## 1. Подготовка сервера
+
+### Требования к системе:
+- Ubuntu 20.04+ / Debian 11+
+- Python 3.10+
+- PostgreSQL 14+
+- Systemd
+
+### Установка базовых пакетов:
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y python3-pip python3-venv postgresql postgresql-contrib git
+
+Настройка PostgreSQL:
+
+sudo -u postgres psql
+
+-- В psql выполнить:
+CREATE DATABASE leads_db;
+CREATE USER leads_user WITH PASSWORD 'ваш_пароль';
+GRANT ALL PRIVILEGES ON DATABASE leads_db TO leads_user;
+\c leads_db
+GRANT ALL ON SCHEMA public TO leads_user;
+\q
+
+Проверка подключения:
+psql -h localhost -U leads_user -d leads_db -W
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+Настройка Google Cloud:
+Создание проекта и сервисного аккаунта:
+Откройте Google Cloud Console
+
+Создайте новый проект или выберите существующий
+
+Перейдите в "APIs & Services" → "Library"
+
+Найдите и включите Google Sheets API
+
+Перейдите в "Credentials" → "Create Credentials" → "Service Account"
+
+Заполните:
+
+Service account name: lead-automation
+
+Role: Editor (или более ограниченные права)
+
+Create key: JSON format
+
+Настройка доступа к таблице:
+Откройте Google таблицу
+
+Нажмите "Поделиться"
+
+Добавьте email сервисного аккаунта (находится в JSON файле, поле client_email)
+
+Установите права: "Редактор" (для записи) или "Просмотр" (только чтение)
+
+Пример заполнения .env:
+# Google Sheets
+GOOGLE_SHEET_ID=ваш_id_таблицы
+GOOGLE_SHEET_NAME=Reg_on_Tilda
+
+# Google Cloud
+GOOGLE_APPLICATION_CREDENTIALS=/полный/путь/к/sa-key.json
+GOOGLE_CLOUD_PROJECT=ваш-project-id
+
+# Database
+USE_POSTGRESQL=true
+POSTGRESQL_HOST=localhost
+POSTGRESQL_PORT=5432
+POSTGRESQL_DB=leads_db
+POSTGRESQL_USER=leads_user
+POSTGRESQL_PASSWORD=ваш_пароль
+
+# Telegram
+TELEGRAM_BOT_TOKEN=ваш_токен_бота
+TELEGRAM_CHAT_ID=ваш_chat_id
+
+# Email
+SMTP_SERVER=smtp.yandex.ru
+SMTP_PORT=587
+SMTP_USER=ваш_email
+SMTP_PASSWORD=ваш_пароль
+EMAIL_TO=получатель@example.com
+
+# Logging
+LOG_FILE=/var/log/leads-automation/leads.log
+
+
+Получение Telegram данных:
+Создайте бота через @BotFather
+
+Получите токен бота
+
+Узнайте ваш chat_id через @userinfobot
+
+[Unit]
+Description=Leads Automation Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=ваш_пользователь
+Group=ваш_группа
+WorkingDirectory=/полный/путь/к/project
+
+Environment="PATH=/полный/путь/к/project/venv/bin"
+EnvironmentFile=/полный/путь/к/project/.env
+
+ExecStart=/полный/путь/к/project/venv/bin/python /полный/путь/к/project/main.py
+
+Restart=always
+RestartSec=10
+
+StandardOutput=append:/var/log/leads-automation/leads.log
+StandardError=append:/var/log/leads-automation/leads-error.log
+SyslogIdentifier=leads-automation
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+# Создание директории для логов
+sudo mkdir -p /var/log/leads-automation
+sudo chown ваш_пользователь:ваш_группа /var/log/leads-automation
+
+# Права на конфигурационные файлы
+chmod 600 .env
+chmod 600 sa-key.json
+
+sudo systemctl daemon-reload
+sudo systemctl enable leads-automation.service
+sudo systemctl start leads-automation.service
+
+Команды управления:
+# Статус сервиса
+sudo systemctl status leads-automation.service
+
+# Просмотр логов
+sudo journalctl -u leads-automation.service -f
+
+# Остановка
+sudo systemctl stop leads-automation.service
+
+# Перезапуск
+sudo systemctl restart leads-automation.service
