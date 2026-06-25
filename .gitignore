@@ -1,0 +1,64 @@
+# ==========================
+# Python (рекурсивно, везде)
+# ==========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ==========================
+# Virtual Environment
+# ==========================
+venv/
+.venv/
+ENV/
+env/
+
+# ==========================
+# Secrets (ВАЖНО! Указываем путь от корня)
+# ==========================
+landing/.env
+landing/.env.local
+landing/.env.*.local
+landing/sa-key.json
+
+# ==========================
+# State & Runtime files
+# ==========================
+landing/state.json
+
+# ==========================
+# Logs
+# ==========================
+*.log
+
+# ==========================
+# IDE
+# ==========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================
+# OS files
+# ==========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================
+# Testing
+# ==========================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
