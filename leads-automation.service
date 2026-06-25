@@ -1,0 +1,21 @@
+[Unit]
+Description=Leads Automation Service (Google Forms to DB/Notifications)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=cubinez85
+Group=cubinez85
+# Рабочая папка, где лежит main.py и .env
+WorkingDirectory=/home/cubinez85/lead_landing_google_form/landing
+
+# Указываем путь к Python из виртуального окружения
+Environment="PATH=/home/cubinez85/lead_landing_google_form/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/cubinez85/lead_landing_google_form/venv/bin/python main.py
+
+# Автоматический перезапуск при падении
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
