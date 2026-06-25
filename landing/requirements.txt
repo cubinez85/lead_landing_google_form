@@ -51,4 +51,11 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 uritemplate==4.2.0
 urllib3==2.5.0
+vk_api==11.10.0
 wcwidth==0.2.14
+flask
+flask-cors
+passlib[bcrypt]
+argon2-cffi
+gunicorn==26.0.0
+PyJWT==2.13.0
