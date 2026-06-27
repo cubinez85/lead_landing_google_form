@@ -33,15 +33,73 @@ psql -U leads_user -d leads_db -h localhost -f landing/app/migrations/003_must_c
 # Создание папки для сертификатов
 sudo mkdir -p /etc/nginx/ssl
 
-# Генерация self-signed сертификата
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout /etc/nginx/ssl/lead-landing.key \
-  -out /etc/nginx/ssl/lead-landing.crt \
-  -subj "/C=RU/ST=Moscow/L=Moscow/O=YourOrg/CN=your-domain.com"
+# создать /etc/nginx/ssl/openssl.cnf
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = v3_req
 
-# Установка прав
-sudo chmod 644 /etc/nginx/ssl/lead-landing.crt
-sudo chmod 600 /etc/nginx/ssl/lead-landing.key
+[dn]
+C = RU
+ST = Moscow
+L = Moscow
+O = Cubinez
+OU = IT
+CN = wordpress.cubinez.ru
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = wordpress.cubinez.ru
+DNS.2 = localhost
+IP.1 = 127.0.0.1
+
+Шаг 1: Пересоздайте сертификат с правильным флагом
+
+# Удалите старые сертификаты
+sudo rm -f /etc/nginx/ssl/test-register-tilda.*
+
+# Создайте новый сертификат с явным указанием extensions
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/test-register-tilda.key \
+  -out /etc/nginx/ssl/test-register-tilda.crt \
+  -config /etc/nginx/ssl/openssl.cnf \
+  -extensions v3_req
+
+# Установите права
+sudo chmod 644 /etc/nginx/ssl/test-register-tilda.crt
+sudo chmod 600 /etc/nginx/ssl/test-register-tilda.key
+
+Шаг 2: Проверьте, что SAN теперь есть
+
+openssl x509 -in /etc/nginx/ssl/test-register-tilda.crt -text -noout | grep -A 3 "Alternative"
+
+Должно показать:
+
+            X509v3 Subject Alternative Name: 
+                DNS:test-register-tilda.cubinez.ru, DNS:localhost, IP Address:127.0.0.1
+
+Шаг 3: Перезапустите Nginx
+sudo nginx -t
+sudo systemctl reload nginx
+
+Шаг 4: Скопируйте сертификат в Windows и установите его
+
+# Скопируйте на рабочий стол Windows
+cp /etc/nginx/ssl/test-register-tilda.crt /mnt/c/Users/Oleg/OneDrive/Desktop/test-register-tilda.crt
+
+Затем в Windows:
+Откройте файл test-register-tilda.crt на рабочем столе
+Нажмите "Установить сертификат"
+Выберите "Текущий пользователь" → Далее
+Выберите "Поместить все сертификаты в следующее хранилище"
+Нажмите "Обзор" → выберите "Доверенные корневые центры сертификации"
+Далее → Готово
+Шаг 5: Полностью закройте браузер и проверьте
+Важно: Chrome/Edge нужно закрыть полностью (включая все окна).
 
 # Перезапуск Nginx
 sudo systemctl reload nginx
