@@ -239,23 +239,40 @@ psql -U leads_user -d leads_db -h localhost -c "SELECT id, email, full_name, cre
 echo '{"1ILTKFRibB5-q1va7UEYekqJDVYl6O_G8VXLWsaq9yE0:Responses": 1}' > state.json
 
 Тестирование API
-# Health check
+# добавить сертификат в wsl
+sudo cp /etc/nginx/ssl/test-register-tilda.crt /usr/local/share/ca-certificates/test-register-tilda.crt
+sudo update-ca-certificates
+
+# Chrome/Edge требуют, чтобы в сертификате было расширение SAN (Subject Alternative Name). Проверьте:
+openssl x509 -in /etc/nginx/ssl/test-register-tilda.crt -noout -ext subjectAltName
+
+# Если вывод пустой или с ошибкой — браузер может всё равно ругаться, даже с установленным сертификатом. Тогда пересоздайте сертификат с SAN:
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /etc/nginx/ssl/test-register-tilda.key \
+  -out /etc/nginx/ssl/test-register-tilda.crt \
+  -subj "/CN=test-register-tilda.cubinez.ru" \
+  -addext "subjectAltName=DNS:test-register-tilda.cubinez.ru,DNS:localhost,IP:127.0.0.1"
+
+sudo nginx -t && sudo systemctl reload nginx
+sudo update-ca-certificates
+
+# Health check без -k
+curl -i https://test-register-tilda.cubinez.ru/api/health
+
+# Health check with -k
 curl -k https://test-register-tilda.cubinez.ru/api/health
 
 # Вход
-curl -k -X POST https://test-register-tilda.cubinez.ru/api/login \
+# 1. Логин (POST) — получите токен
+curl -i -X POST https://test-register-tilda.cubinez.ru/api/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "cubinez85@cubinez.ru", "password": "пароль"}'
+  -d '{"email":"cubinez85@cubinez.ru","password":"ВАШ_ПАРОЛЬ"}'
 
-# Получить токен в переменную
-TOKEN=$(curl -s -X POST http://test-register-tilda.cubinez.ru/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "cubinez85@cubinez.ru", "password": "пароль"}' | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+# 2. Админ-статистика с токеном
+curl -i https://test-register-tilda.cubinez.ru/api/admin/stats \
+  -H "Authorization: Bearer ТОКЕН_ИЗ_ОТВЕТА"
 
-# Статистика (админ)
-curl -s -H "Authorization: Bearer $TOKEN" http://test-register-tilda.cubinez.ru/api/admin/stats | python3 -m json.tool
-
-🌐 Страницы Tilda
+🌐 Страницы Tilda# 
 URL,Название,Описание
 /,main,Главная страница
 /login,Страница входа,Форма входа
